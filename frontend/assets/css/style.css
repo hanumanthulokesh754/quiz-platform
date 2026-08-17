@@ -1,0 +1,213 @@
+/* ============================================================
+   Quiz Platform — design tokens
+   Direction: examination paper / mark-sheet, not dashboard-generic.
+   Palette: parchment ground, ink text, a single goldenrod "seal"
+   accent used only for scores, status stamps and the timer.
+   ============================================================ */
+:root {
+  --paper: #f3f1ea;
+  --paper-raised: #fbfaf6;
+  --ink: #22261f;
+  --ink-soft: #565c4f;
+  --rule: #d8d4c4;
+  --seal: #b8862f;          /* goldenrod — score, stamps, timer */
+  --seal-dim: #e7d6ad;
+  --pass: #3f6b4a;
+  --fail: #9c3b2f;
+  --focus: #2f5fb8;
+
+  --display: "Source Serif 4", "Iowan Old Style", Georgia, serif;
+  --body: "IBM Plex Sans", "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+
+  --radius: 3px;
+  --space-1: 6px;
+  --space-2: 12px;
+  --space-3: 20px;
+  --space-4: 32px;
+  --space-5: 48px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+h1, h2, h3 {
+  font-family: var(--display);
+  font-weight: 600;
+  margin: 0 0 var(--space-2);
+  letter-spacing: 0.01em;
+}
+h1 { font-size: 28px; }
+h2 { font-size: 20px; }
+h3 { font-size: 16px; }
+
+a { color: var(--focus); }
+
+.container {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: var(--space-4) var(--space-3);
+}
+
+/* Header / eyebrow — labels the page like a form field label,
+   not decoration: every page states what it is and who's viewing it. */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--seal);
+  margin-bottom: var(--space-1);
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper-raised);
+}
+.topbar .brand {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 18px;
+}
+.topbar nav a {
+  margin-left: var(--space-3);
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 14px;
+}
+.topbar nav a:hover, .topbar nav a.active { color: var(--ink); border-bottom: 2px solid var(--seal); }
+
+.card {
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.grid {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+/* Buttons */
+.btn {
+  font-family: var(--body);
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--radius);
+  padding: 10px 18px;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  cursor: pointer;
+}
+.btn:hover { opacity: 0.88; }
+.btn.secondary { background: transparent; color: var(--ink); }
+.btn.danger { background: var(--fail); border-color: var(--fail); }
+.btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+input, select, textarea {
+  font-family: var(--body);
+  font-size: 14px;
+  padding: 9px 11px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: #fff;
+  width: 100%;
+}
+label { display: block; font-size: 13px; color: var(--ink-soft); margin-bottom: 4px; }
+.field { margin-bottom: var(--space-2); }
+
+.error { color: var(--fail); font-size: 13px; margin: var(--space-1) 0; }
+.success { color: var(--pass); font-size: 13px; margin: var(--space-1) 0; }
+
+/* Status stamps — read like an examiner's ink stamp on a mark sheet. */
+.stamp {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: var(--radius);
+  border: 1.5px solid currentColor;
+}
+.stamp.published, .stamp.passed { color: var(--pass); }
+.stamp.draft { color: var(--ink-soft); }
+.stamp.unpublished, .stamp.failed { color: var(--fail); }
+
+/* Signature element: the exam clock — used on the attempt page timer
+   and anywhere remaining time matters. */
+.exam-clock {
+  font-family: var(--mono);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--seal);
+  border: 2px solid var(--seal);
+  border-radius: 50%;
+  width: 76px;
+  height: 76px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--seal-dim);
+}
+.exam-clock.low-time { color: var(--fail); border-color: var(--fail); background: #f3ddd8; }
+
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--rule); font-size: 14px; }
+th { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
+
+.score-big {
+  font-family: var(--mono);
+  font-size: 44px;
+  font-weight: 700;
+  color: var(--seal);
+}
+
+.muted { color: var(--ink-soft); font-size: 13px; }
+.hidden { display: none !important; }
+
+.question-nav { display: flex; flex-wrap: wrap; gap: 6px; margin: var(--space-2) 0; }
+.question-nav button {
+  width: 32px; height: 32px;
+  font-family: var(--mono);
+  font-size: 12px;
+  border: 1px solid var(--rule);
+  background: #fff;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.question-nav button.answered { border-color: var(--pass); color: var(--pass); }
+.question-nav button.current { border-color: var(--seal); border-width: 2px; }
+
+.option-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 10px 12px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  cursor: pointer;
+  background: #fff;
+}
+.option-row:hover { border-color: var(--seal); }
+.option-row.selected { border-color: var(--seal); background: var(--seal-dim); }
+.option-row.correct { border-color: var(--pass); background: #e4efe6; }
+.option-row.incorrect { border-color: var(--fail); background: #f3ddd8; }

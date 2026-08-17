@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Leaderboard — Quiz Platform</title>
+<link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+  <div class="topbar" id="topbar"></div>
+
+  <div class="container">
+    <div class="eyebrow">Top performers</div>
+    <h1>Leaderboard</h1>
+
+    <div class="card">
+      <table>
+        <thead><tr><th>Rank</th><th>Student</th><th>Avg. score</th><th>Completed</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="../assets/js/api.js"></script>
+  <script src="../assets/js/layout.js"></script>
+  <script>
+    const user = requireAuth("STUDENT");
+    if (user) { renderTopbar("leaderboard"); load(); }
+
+    async function load() {
+      const rows = await api("/leaderboard");
+      document.getElementById("tbody").innerHTML = rows
+        .map(
+          (r) => `
+        <tr ${r.user_id === user.id ? 'style="font-weight:600;"' : ""}>
+          <td>#${r.rank}</td>
+          <td>${r.name}</td>
+          <td>${r.average_score}%</td>
+          <td>${r.quizzes_completed}</td>
+        </tr>`
+        )
+        .join("");
+    }
+  </script>
+</body>
+</html>

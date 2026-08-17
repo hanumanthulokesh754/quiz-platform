@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Manage questions — Quiz Platform</title>
+<link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+  <div class="topbar" id="topbar"></div>
+
+  <div class="container">
+    <div class="eyebrow"><a href="./quizzes.html">&larr; All quizzes</a></div>
+    <h1 id="quizTitle">Questions</h1>
+
+    <div id="questionList"></div>
+
+    <div class="card">
+      <h2>Add a question</h2>
+      <div class="field"><label>Question text</label><textarea id="q_text" rows="2"></textarea></div>
+      <div class="field"><label>Marks</label><input id="q_marks" type="number" value="1" /></div>
+      <div class="field"><label>Explanation (shown after submission)</label><textarea id="q_explanation" rows="2"></textarea></div>
+
+      <label>Options — mark exactly one as correct</label>
+      <div id="optionsInputs"></div>
+      <button class="btn secondary" id="addOptionBtn" type="button">+ Add option</button>
+
+      <div id="formError" class="error hidden" style="margin-top:12px;"></div>
+      <button class="btn" id="saveQuestionBtn" style="margin-top:12px;">Add question</button>
+    </div>
+  </div>
+
+  <script src="../assets/js/api.js"></script>
+  <script src="../assets/js/layout.js"></script>
+  <script>
+    const user = requireAuth("ADMIN");
+    const quizId = new URLSearchParams(window.location.search).get("quiz_id");
+    let optionCount = 0;
+
+    if (user && quizId) {
+      renderTopbar("quizzes");
+      addOptionRow(); addOptionRow(); // start with 2 options
+      load();
+    }
+
+    async function load() {
+      const quiz = await api(`/quizzes/${quizId}`);
+      document.getElementById("quizTitle").textContent = `Questions — ${quiz.title}`;
+
+      const questions = await api(`/quizzes/${quizId}/questions`);
+      document.getElementById("questionList").innerHTML = questions
+        .map(
+          (q, i) => `
+        <div class="card">
+          <div class="eyebrow">Question ${i + 1} · ${q.marks} mark(s)</div>
+          <p><strong>${q.question_text}</strong></p>
+          <ul>
+            ${q.options.map((o) => `<li>${o.option_text} ${o.is_correct ? "✓" : ""}</li>`).join("")}
+          </ul>
+          <button class="btn danger" onclick="deleteQuestion('${q.id}')">Delete</button>
+        </div>`
+        )
+        .join("") || `<p class="muted">No questions yet — add at least one before publishing.</p>`;
+    }
+
+    function addOptionRow() {
+      optionCount++;
+      const div = document.createElement("div");
+      div.className = "field";
+      div.style.display = "flex";
+      div.style.gap = "8px";
+      div.style.alignItems = "center";
+      div.innerHTML = `
+        <input type="radio" name="correctOption" value="${optionCount}" style="width:auto;" />
+        <input type="text" class="option-text" placeholder="Option text" style="flex:1;" />
+      `;
+      document.getElementById("optionsInputs").appendChild(div);
+    }
+    document.getElementById("addOptionBtn").addEventListener("click", addOptionRow);
+
+    document.getElementById("saveQuestionBtn").addEventListener("click", async () => {
+      const errorEl = document.getElementById("formError");
+      errorEl.classList.add("hidden");
+
+      const rows = [...document.querySelectorAll("#optionsInputs .field")];
+      const options = rows.map((row) => ({
+        option_text: row.querySelector(".option-text").value.trim(),
+        is_correct: row.querySelector("input[type=radio]").checked,
+      })).filter((o) => o.option_text);
+
+      try {
+        await api(`/quizzes/${quizId}/questions`, {
+          method: "POST",
+          body: {
+            question_text: document.getElementById("q_text").value.trim(),
+            marks: Number(document.getElementById("q_marks").value),
+            explanation: document.getElementById("q_explanation").value.trim(),
+            options,
+          },
+        });
+        document.getElementById("q_text").value = "";
+        document.getElementById("q_explanation").value = "";
+        document.getElementById("optionsInputs").innerHTML = "";
+        optionCount = 0;
+        addOptionRow(); addOptionRow();
+        load();
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.remove("hidden");
+      }
+    });
+
+    async function deleteQuestion(id) {
+      if (!confirm("Delete this question?")) return;
+      await api(`/questions/${id}`, { method: "DELETE" });
+      load();
+    }
+  </script>
+</body>
+</html>

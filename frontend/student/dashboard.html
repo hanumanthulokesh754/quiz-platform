@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Dashboard — Quiz Platform</title>
+<link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+  <div class="topbar" id="topbar"></div>
+
+  <div class="container">
+    <div class="eyebrow">Your overview</div>
+    <h1 id="greeting">Dashboard</h1>
+
+    <div class="grid" id="statsGrid"></div>
+
+    <h2>Recent attempts</h2>
+    <div class="card">
+      <table id="recentTable">
+        <thead><tr><th>Quiz</th><th>Score</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <p class="muted" id="emptyState" class="hidden">No attempts yet — <a href="./quizzes.html">browse quizzes</a> to get started.</p>
+    </div>
+  </div>
+
+  <script src="../assets/js/api.js"></script>
+  <script src="../assets/js/layout.js"></script>
+  <script>
+    const user = requireAuth("STUDENT");
+    if (user) {
+      renderTopbar("dashboard");
+      document.getElementById("greeting").textContent = `Welcome back, ${user.name}`;
+      loadDashboard();
+    }
+
+    async function loadDashboard() {
+      const attempts = await api("/attempts");
+      const completed = attempts.filter((a) => a.status !== "IN_PROGRESS");
+      const total = completed.length;
+      const avg = total ? Math.round(completed.reduce((s, a) => s + (a.percentage || 0), 0) / total) : 0;
+      const highest = total ? Math.max(...completed.map((a) => a.percentage || 0)) : 0;
+      const passed = completed.filter((a) => (a.percentage || 0) >= 60).length; // fallback; per-quiz passing_score shown on result page
+
+      const stats = [
+        ["Quizzes attempted", total],
+        ["Average score", `${avg}%`],
+        ["Highest score", `${highest}%`],
+        ["Passed", passed],
+      ];
+      document.getElementById("statsGrid").innerHTML = stats
+        .map(([label, value]) => `<div class="card"><div class="eyebrow">${label}</div><div class="score-big" style="font-size:28px;">${value}</div></div>`)
+        .join("");
+
+      const tbody = document.querySelector("#recentTable tbody");
+      const recent = completed.slice(0, 8);
+      if (!recent.length) {
+        document.getElementById("emptyState").classList.remove("hidden");
+      }
+      tbody.innerHTML = recent
+        .map(
+          (a) => `
+        <tr onclick="window.location.href='./result.html?attempt_id=${a.id}'" style="cursor:pointer;">
+          <td>${a.quizzes?.title ?? "Quiz"}</td>
+          <td>${a.percentage ?? "-"}%</td>
+          <td><span class="stamp ${a.status.toLowerCase()}">${a.status}</span></td>
+          <td>${new Date(a.started_at).toLocaleDateString()}</td>
+        </tr>`
+        )
+        .join("");
+    }
+  </script>
+</body>
+</html>

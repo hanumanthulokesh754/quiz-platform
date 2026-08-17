@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Result — Quiz Platform</title>
+<link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+  <div class="topbar" id="topbar"></div>
+
+  <div class="container" style="max-width:640px;">
+    <div class="eyebrow">Quiz result</div>
+    <h1 id="quizTitle">Result</h1>
+
+    <div class="card" style="text-align:center;">
+      <div class="score-big" id="percentage">--%</div>
+      <div class="stamp" id="statusStamp">-</div>
+      <table style="margin-top:16px;">
+        <tr><td>Correct</td><td id="correct">-</td></tr>
+        <tr><td>Incorrect</td><td id="incorrect">-</td></tr>
+        <tr><td>Unanswered</td><td id="unanswered">-</td></tr>
+        <tr><td>Time taken</td><td id="timeTaken">-</td></tr>
+        <tr class="hidden" id="scoreRow"><td>Marks scored</td><td id="marksScored">-</td></tr>
+      </table>
+    </div>
+
+    <h2>Review your answers</h2>
+    <div id="reviewList"></div>
+  </div>
+
+  <script src="../assets/js/api.js"></script>
+  <script src="../assets/js/layout.js"></script>
+  <script>
+    const user = requireAuth("STUDENT");
+    const attemptId = new URLSearchParams(window.location.search).get("attempt_id");
+    if (user && attemptId) { renderTopbar("history"); load(); }
+
+    async function load() {
+      const attempt = await api(`/attempts/${attemptId}`);
+      const passed = attempt.percentage >= attempt.quizzes.passing_score;
+
+      document.getElementById("quizTitle").textContent = attempt.quizzes.title;
+      document.getElementById("percentage").textContent = `${attempt.percentage}%`;
+      const stamp = document.getElementById("statusStamp");
+      stamp.textContent = passed ? "Passed" : "Failed";
+      stamp.classList.add(passed ? "passed" : "failed");
+      document.getElementById("correct").textContent = attempt.correct_answers;
+      document.getElementById("incorrect").textContent = attempt.incorrect_answers;
+      document.getElementById("unanswered").textContent = attempt.unanswered;
+      const mins = Math.floor(attempt.time_taken_seconds / 60);
+      const secs = attempt.time_taken_seconds % 60;
+      document.getElementById("timeTaken").textContent = `${mins}m ${secs}s`;
+
+      if (attempt.quizzes.negative_marks > 0) {
+        document.getElementById("scoreRow").classList.remove("hidden");
+        document.getElementById("marksScored").textContent =
+          `${attempt.score} (−${attempt.quizzes.negative_marks} applied per wrong answer)`;
+      }
+
+      document.getElementById("reviewList").innerHTML = attempt.answers
+        .map((a) => {
+          const status = a.is_correct === null ? "unanswered" : a.is_correct ? "correct" : "incorrect";
+          return `
+          <div class="card">
+            <p><strong>${a.questions.question_text}</strong></p>
+            <p class="muted">Your answer: ${a.options ? a.options.option_text : "Not answered"}</p>
+            <span class="stamp ${status === "correct" ? "passed" : status === "incorrect" ? "failed" : "draft"}">${status}</span>
+            ${a.questions.explanation ? `<p class="muted" style="margin-top:8px;">${a.questions.explanation}</p>` : ""}
+          </div>`;
+        })
+        .join("");
+    }
+  </script>
+</body>
+</html>

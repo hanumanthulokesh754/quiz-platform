@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Quiz in progress — Quiz Platform</title>
+<link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+  <div class="container" style="max-width:640px;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+      <div>
+        <div class="eyebrow" id="quizTitle">Quiz</div>
+        <h2 id="questionCounter">Question 1 of 1</h2>
+        <p class="muted hidden" id="negMarkingNotice"></p>
+      </div>
+      <div class="exam-clock" id="clock">--:--</div>
+    </div>
+
+    <div class="question-nav" id="questionNav"></div>
+
+    <div class="card">
+      <p id="questionText" style="font-size:17px;"></p>
+      <div id="optionsList"></div>
+    </div>
+
+    <div style="display:flex; justify-content:space-between;">
+      <button class="btn secondary" id="prevBtn">Previous</button>
+      <button class="btn secondary" id="nextBtn">Next</button>
+      <button class="btn" id="submitBtn">Submit quiz</button>
+    </div>
+    <div id="formError" class="error hidden"></div>
+  </div>
+
+  <script src="../assets/js/api.js"></script>
+  <script>
+    const user = requireAuth("STUDENT");
+    const quizId = new URLSearchParams(window.location.search).get("id");
+
+    let attemptId = null;
+    let questions = [];
+    let currentIndex = 0;
+    let answers = {};       // { question_id: option_id }
+    let remainingSeconds = 0;
+    let timerHandle = null;
+
+    if (user && quizId) init();
+
+    async function init() {
+      try {
+        const data = await api(`/quizzes/${quizId}/start`, { method: "POST" });
+        attemptId = data.attempt_id;
+        questions = data.questions;
+        remainingSeconds = data.remaining_seconds;
+        document.getElementById("quizTitle").textContent = data.quiz.title;
+        if (data.quiz.negative_marks > 0) {
+          const notice = document.getElementById("negMarkingNotice");
+          notice.textContent = `-${data.quiz.negative_marks} marks for each wrong answer`;
+          notice.classList.remove("hidden");
+        }
+
+        renderNav();
+        renderQuestion();
+        startTimer();
+      } catch (err) {
+        document.getElementById("formError").textContent = err.message;
+        document.getElementById("formError").classList.remove("hidden");
+      }
+    }
+
+    function startTimer() {
+      updateClock();
+      timerHandle = setInterval(() => {
+        remainingSeconds--;
+        updateClock();
+        if (remainingSeconds <= 0) {
+          clearInterval(timerHandle);
+          submitQuiz(); // backend re-validates timing regardless of client state
+        }
+      }, 1000);
+    }
+
+    function updateClock() {
+      const m = Math.floor(remainingSeconds / 60).toString().padStart(2, "0");
+      const s = (remainingSeconds % 60).toString().padStart(2, "0");
+      const clock = document.getElementById("clock");
+      clock.textContent = `${m}:${s}`;
+      clock.classList.toggle("low-time", remainingSeconds <= 60);
+    }
+
+    function renderNav() {
+      const nav = document.getElementById("questionNav");
+      nav.innerHTML = questions
+        .map((q, i) => `<button data-i="${i}">${i + 1}</button>`)
+        .join("");
+      nav.querySelectorAll("button").forEach((btn) =>
+        btn.addEventListener("click", () => { currentIndex = Number(btn.dataset.i); renderQuestion(); })
+      );
+      refreshNavState();
+    }
+
+    function refreshNavState() {
+      document.querySelectorAll("#questionNav button").forEach((btn, i) => {
+        btn.classList.toggle("current", i === currentIndex);
+        btn.classList.toggle("answered", questions[i].id in answers);
+      });
+    }
+
+    function renderQuestion() {
+      const q = questions[currentIndex];
+      document.getElementById("questionCounter").textContent = `Question ${currentIndex + 1} of ${questions.length}`;
+      document.getElementById("questionText").textContent = q.question_text;
+
+      document.getElementById("optionsList").innerHTML = q.options
+        .map(
+          (o) => `
+        <div class="option-row ${answers[q.id] === o.id ? "selected" : ""}" data-option="${o.id}">
+          ${o.option_text}
+        </div>`
+        )
+        .join("");
+
+      document.querySelectorAll(".option-row").forEach((row) =>
+        row.addEventListener("click", () => {
+          answers[q.id] = row.dataset.option;
+          renderQuestion();
+          refreshNavState();
+        })
+      );
+
+      document.getElementById("prevBtn").disabled = currentIndex === 0;
+      document.getElementById("nextBtn").disabled = currentIndex === questions.length - 1;
+      refreshNavState();
+    }
+
+    document.getElementById("prevBtn").addEventListener("click", () => { currentIndex--; renderQuestion(); });
+    document.getElementById("nextBtn").addEventListener("click", () => { currentIndex++; renderQuestion(); });
+    document.getElementById("submitBtn").addEventListener("click", () => {
+      if (confirm("Submit the quiz now? You can't change answers after submitting.")) submitQuiz();
+    });
+
+    async function submitQuiz() {
+      clearInterval(timerHandle);
+      try {
+        const data = await api(`/quizzes/${quizId}/submit`, {
+          method: "POST",
+          body: { attempt_id: attemptId, answers },
+        });
+        window.location.href = `./result.html?attempt_id=${data.attempt.id}`;
+      } catch (err) {
+        document.getElementById("formError").textContent = err.message;
+        document.getElementById("formError").classList.remove("hidden");
+      }
+    }
+
+    // Best-effort resume warning: browser refresh doesn't lose progress
+    // server-side (start_attempt resumes IN_PROGRESS attempts), but any
+    // locally-selected answers not yet submitted are only held in memory.
+    window.addEventListener("beforeunload", (e) => {
+      e.preventDefault();
+      e.returnValue = "";
+    });
+  </script>
+</body>
+</html>

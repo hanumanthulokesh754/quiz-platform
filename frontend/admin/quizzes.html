@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Manage quizzes — Quiz Platform</title>
+<link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+  <div class="topbar" id="topbar"></div>
+
+  <div class="container">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <div class="eyebrow">Quiz management</div>
+        <h1>Quizzes</h1>
+      </div>
+      <button class="btn" id="newQuizBtn">+ New quiz</button>
+    </div>
+
+    <div class="card">
+      <table>
+        <thead><tr><th>Title</th><th>Category</th><th>Status</th><th>Questions</th><th>Rules</th><th></th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- New quiz form (hidden until "New quiz" is clicked) -->
+    <div class="card hidden" id="newQuizForm">
+      <h2>New quiz</h2>
+      <div class="field"><label>Title</label><input id="f_title" /></div>
+      <div class="field"><label>Description</label><textarea id="f_description" rows="3"></textarea></div>
+      <div class="field"><label>Category</label><select id="f_category"></select></div>
+      <div class="field"><label>Difficulty</label>
+        <select id="f_difficulty"><option>EASY</option><option selected>INTERMEDIATE</option><option>HARD</option></select>
+      </div>
+      <div class="field"><label>Duration (minutes)</label><input id="f_duration" type="number" value="20" /></div>
+      <div class="field"><label>Passing score (%)</label><input id="f_passing" type="number" value="60" /></div>
+      <div class="field"><label>Maximum attempts</label><input id="f_maxattempts" type="number" value="2" /></div>
+      <div class="field">
+        <label>Negative marking (deducted per wrong answer)</label>
+        <input id="f_negmarks" type="number" step="0.25" min="0" value="0" />
+        <span class="muted">0 disables negative marking</span>
+      </div>
+      <div class="field" style="display:flex; align-items:center; gap:8px;">
+        <input id="f_randomizeq" type="checkbox" style="width:auto;" />
+        <label for="f_randomizeq" style="margin:0;">Randomize question order per attempt</label>
+      </div>
+      <div class="field" style="display:flex; align-items:center; gap:8px;">
+        <input id="f_randomizeo" type="checkbox" style="width:auto;" />
+        <label for="f_randomizeo" style="margin:0;">Randomize answer options per attempt</label>
+      </div>
+      <div id="formError" class="error hidden"></div>
+      <button class="btn" id="saveQuizBtn">Create quiz</button>
+      <button class="btn secondary" id="cancelQuizBtn">Cancel</button>
+    </div>
+  </div>
+
+  <script src="../assets/js/api.js"></script>
+  <script src="../assets/js/layout.js"></script>
+  <script>
+    const user = requireAuth("ADMIN");
+    if (user) { renderTopbar("quizzes"); init(); }
+
+    async function init() {
+      await loadCategories();
+      await loadQuizzes();
+    }
+
+    async function loadCategories() {
+      const categories = await api("/categories");
+      document.getElementById("f_category").innerHTML = categories
+        .map((c) => `<option value="${c.id}">${c.name}</option>`)
+        .join("");
+      window._categoriesById = Object.fromEntries(categories.map((c) => [c.id, c.name]));
+    }
+
+    async function loadQuizzes() {
+      const quizzes = await api("/quizzes"); // admin sees all statuses
+      const tbody = document.getElementById("tbody");
+      tbody.innerHTML = await Promise.all(
+        quizzes.map(async (q) => {
+          const questions = await api(`/quizzes/${q.id}/questions`);
+          return `
+          <tr>
+            <td><a href="./questions.html?quiz_id=${q.id}">${q.title}</a></td>
+            <td>${window._categoriesById[q.category_id] || "-"}</td>
+            <td><span class="stamp ${q.status.toLowerCase()}">${q.status}</span></td>
+            <td>${questions.length}</td>
+            <td class="muted">
+              ${q.negative_marks > 0 ? `-${q.negative_marks}/wrong` : ""}
+              ${q.randomize_questions ? " · shuffled Qs" : ""}
+              ${q.randomize_options ? " · shuffled opts" : ""}
+              ${(!q.negative_marks && !q.randomize_questions && !q.randomize_options) ? "-" : ""}
+            </td>
+            <td>
+              ${q.status === "PUBLISHED"
+                ? `<button class="btn secondary" onclick="setStatus('${q.id}','UNPUBLISHED')">Unpublish</button>`
+                : `<button class="btn secondary" onclick="setStatus('${q.id}','PUBLISHED')">Publish</button>`}
+              <button class="btn danger" onclick="deleteQuiz('${q.id}')">Delete</button>
+            </td>
+          </tr>`;
+        })
+      ).then((rows) => rows.join(""));
+    }
+
+    async function setStatus(id, status) {
+      try {
+        await api(`/quizzes/${id}/publish`, { method: "PATCH", body: { status } });
+        loadQuizzes();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    async function deleteQuiz(id) {
+      if (!confirm("Delete this quiz and all its questions/attempts?")) return;
+      await api(`/quizzes/${id}`, { method: "DELETE" });
+      loadQuizzes();
+    }
+
+    document.getElementById("newQuizBtn").addEventListener("click", () => {
+      document.getElementById("newQuizForm").classList.remove("hidden");
+    });
+    document.getElementById("cancelQuizBtn").addEventListener("click", () => {
+      document.getElementById("newQuizForm").classList.add("hidden");
+    });
+
+    document.getElementById("saveQuizBtn").addEventListener("click", async () => {
+      const errorEl = document.getElementById("formError");
+      errorEl.classList.add("hidden");
+      try {
+        const quiz = await api("/quizzes", {
+          method: "POST",
+          body: {
+            title: document.getElementById("f_title").value.trim(),
+            description: document.getElementById("f_description").value.trim(),
+            category_id: document.getElementById("f_category").value,
+            difficulty: document.getElementById("f_difficulty").value,
+            duration_minutes: Number(document.getElementById("f_duration").value),
+            passing_score: Number(document.getElementById("f_passing").value),
+            max_attempts: Number(document.getElementById("f_maxattempts").value),
+            negative_marks: Number(document.getElementById("f_negmarks").value),
+            randomize_questions: document.getElementById("f_randomizeq").checked,
+            randomize_options: document.getElementById("f_randomizeo").checked,
+          },
+        });
+        window.location.href = `./questions.html?quiz_id=${quiz.id}`;
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.remove("hidden");
+      }
+    });
+  </script>
+</body>
+</html>

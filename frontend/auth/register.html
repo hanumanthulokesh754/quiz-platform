@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Register — Quiz Platform</title>
+<link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+  <div class="container" style="max-width:400px;">
+    <div class="eyebrow">Quiz Platform</div>
+    <h1>Create your account</h1>
+
+    <form id="registerForm" class="card">
+      <div class="field">
+        <label for="name">Full name</label>
+        <input id="name" type="text" required />
+      </div>
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" type="email" required />
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input id="password" type="password" minlength="8" required />
+        <span class="muted">At least 8 characters</span>
+      </div>
+      <div id="formError" class="error hidden"></div>
+      <button class="btn" type="submit" style="width:100%;">Register</button>
+    </form>
+
+    <p class="muted">Already have an account? <a href="./login.html">Log in</a></p>
+  </div>
+
+  <script src="../assets/js/api.js"></script>
+  <script>
+    document.getElementById("registerForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const errorEl = document.getElementById("formError");
+      errorEl.classList.add("hidden");
+
+      try {
+        const data = await api("/auth/register", {
+          method: "POST",
+          auth: false,
+          body: {
+            name: document.getElementById("name").value.trim(),
+            email: document.getElementById("email").value.trim(),
+            password: document.getElementById("password").value,
+          },
+        });
+        setSession(data.token, data.user);
+        window.location.href = "/student/dashboard.html";
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.remove("hidden");
+      }
+    });
+  </script>
+</body>
+</html>

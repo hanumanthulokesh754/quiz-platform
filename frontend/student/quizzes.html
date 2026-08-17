@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Quizzes — Quiz Platform</title>
+<link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+  <div class="topbar" id="topbar"></div>
+
+  <div class="container">
+    <div class="eyebrow">Available quizzes</div>
+    <h1>Browse quizzes</h1>
+
+    <div class="card" style="display:flex; gap:12px;">
+      <input id="searchInput" placeholder="Search by title..." style="flex:2;" />
+      <select id="categoryFilter" style="flex:1;"><option value="">All categories</option></select>
+    </div>
+
+    <div class="grid" id="quizGrid"></div>
+  </div>
+
+  <script src="../assets/js/api.js"></script>
+  <script src="../assets/js/layout.js"></script>
+  <script>
+    const user = requireAuth("STUDENT");
+    if (user) {
+      renderTopbar("quizzes");
+      init();
+    }
+
+    async function init() {
+      const categories = await api("/categories");
+      const select = document.getElementById("categoryFilter");
+      categories.forEach((c) => {
+        const opt = document.createElement("option");
+        opt.value = c.id;
+        opt.textContent = c.name;
+        select.appendChild(opt);
+      });
+
+      document.getElementById("searchInput").addEventListener("input", debounce(loadQuizzes, 300));
+      select.addEventListener("change", loadQuizzes);
+      loadQuizzes();
+    }
+
+    function debounce(fn, ms) {
+      let t;
+      return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+    }
+
+    async function loadQuizzes() {
+      const search = document.getElementById("searchInput").value.trim();
+      const categoryId = document.getElementById("categoryFilter").value;
+      const params = new URLSearchParams();
+      if (search) params.set("search", search);
+      if (categoryId) params.set("category_id", categoryId);
+
+      const quizzes = await api(`/quizzes?${params.toString()}`);
+      const grid = document.getElementById("quizGrid");
+      if (!quizzes.length) {
+        grid.innerHTML = `<p class="muted">No quizzes match. Check back later.</p>`;
+        return;
+      }
+      grid.innerHTML = quizzes
+        .map(
+          (q) => `
+        <div class="card" style="cursor:pointer;" onclick="window.location.href='./quiz-details.html?id=${q.id}'">
+          <div class="eyebrow">${q.difficulty || "General"}</div>
+          <h3>${q.title}</h3>
+          <p class="muted">${q.description || ""}</p>
+          <p class="muted">${q.duration_minutes} min · Pass ${q.passing_score}%</p>
+        </div>`
+        )
+        .join("");
+    }
+  </script>
+</body>
+</html>

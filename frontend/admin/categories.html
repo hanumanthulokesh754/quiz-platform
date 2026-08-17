@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Categories — Quiz Platform</title>
+<link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+  <div class="topbar" id="topbar"></div>
+
+  <div class="container">
+    <div class="eyebrow">Taxonomy</div>
+    <h1>Categories</h1>
+
+    <div class="card" style="display:flex; gap:8px;">
+      <input id="newCategoryName" placeholder="New category name" style="flex:1;" />
+      <button class="btn" id="addBtn">Add</button>
+    </div>
+
+    <div class="card">
+      <table>
+        <thead><tr><th>Name</th><th>Description</th><th></th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="../assets/js/api.js"></script>
+  <script src="../assets/js/layout.js"></script>
+  <script>
+    const user = requireAuth("ADMIN");
+    if (user) { renderTopbar("categories"); load(); }
+
+    async function load() {
+      const categories = await api("/categories");
+      document.getElementById("tbody").innerHTML = categories
+        .map(
+          (c) => `
+        <tr>
+          <td>${c.name}</td>
+          <td class="muted">${c.description || ""}</td>
+          <td><button class="btn danger" onclick="remove('${c.id}')">Delete</button></td>
+        </tr>`
+        )
+        .join("");
+    }
+
+    document.getElementById("addBtn").addEventListener("click", async () => {
+      const name = document.getElementById("newCategoryName").value.trim();
+      if (!name) return;
+      try {
+        await api("/categories", { method: "POST", body: { name } });
+        document.getElementById("newCategoryName").value = "";
+        load();
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+
+    async function remove(id) {
+      if (!confirm("Delete this category? Quizzes using it will need reassigning.")) return;
+      await api(`/categories/${id}`, { method: "DELETE" });
+      load();
+    }
+  </script>
+</body>
+</html>

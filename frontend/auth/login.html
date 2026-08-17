@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Log in — Quiz Platform</title>
+<link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+  <div class="container" style="max-width:400px;">
+    <div class="eyebrow">Quiz Platform</div>
+    <h1>Log in</h1>
+
+    <form id="loginForm" class="card">
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" type="email" required />
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input id="password" type="password" required />
+      </div>
+      <div id="formError" class="error hidden"></div>
+      <button class="btn" type="submit" style="width:100%;">Log in</button>
+    </form>
+
+    <p class="muted">No account? <a href="./register.html">Register as a student</a></p>
+  </div>
+
+  <script src="../assets/js/api.js"></script>
+  <script>
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const errorEl = document.getElementById("formError");
+      errorEl.classList.add("hidden");
+
+      try {
+        const data = await api("/auth/login", {
+          method: "POST",
+          auth: false,
+          body: {
+            email: document.getElementById("email").value.trim(),
+            password: document.getElementById("password").value,
+          },
+        });
+        setSession(data.token, data.user);
+        window.location.href = data.user.role === "ADMIN" ? "/admin/dashboard.html" : "/student/dashboard.html";
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.remove("hidden");
+      }
+    });
+  </script>
+</body>
+</html>

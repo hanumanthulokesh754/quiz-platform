@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Results — Quiz Platform</title>
+<link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+  <div class="topbar" id="topbar"></div>
+
+  <div class="container">
+    <div class="eyebrow">All attempts</div>
+    <h1>Results</h1>
+
+    <div class="card">
+      <table>
+        <thead><tr><th>Student</th><th>Quiz</th><th>Score</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="../assets/js/api.js"></script>
+  <script src="../assets/js/layout.js"></script>
+  <script>
+    const user = requireAuth("ADMIN");
+    if (user) { renderTopbar("results"); load(); }
+
+    async function load() {
+      const attempts = await api("/admin/attempts");
+      document.getElementById("tbody").innerHTML = attempts
+        .map(
+          (a) => `
+        <tr>
+          <td>${a.users?.name ?? "-"}</td>
+          <td>${a.quizzes?.title ?? "-"}</td>
+          <td>${a.percentage ?? "-"}%</td>
+          <td><span class="stamp ${a.status.toLowerCase()}">${a.status}</span></td>
+          <td>${new Date(a.started_at).toLocaleDateString()}</td>
+        </tr>`
+        )
+        .join("");
+    }
+  </script>
+</body>
+</html>

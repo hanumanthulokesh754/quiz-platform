@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Quiz Platform</title>
+<link rel="stylesheet" href="./assets/css/style.css" />
+</head>
+<body>
+  <script src="./assets/js/api.js"></script>
+  <script>
+    const user = getUser();
+    if (user && getToken()) {
+      window.location.href = user.role === "ADMIN" ? "./admin/dashboard.html" : "./student/dashboard.html";
+    } else {
+      window.location.href = "./auth/login.html";
+    }
+  </script>
+</body>
+</html>

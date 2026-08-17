@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Admin dashboard — Quiz Platform</title>
+<link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+  <div class="topbar" id="topbar"></div>
+
+  <div class="container">
+    <div class="eyebrow">Platform overview</div>
+    <h1>Admin dashboard</h1>
+
+    <div class="grid" id="statsGrid"></div>
+
+    <p><a href="./quizzes.html" class="btn">Manage quizzes</a></p>
+  </div>
+
+  <script src="../assets/js/api.js"></script>
+  <script src="../assets/js/layout.js"></script>
+  <script>
+    const user = requireAuth("ADMIN");
+    if (user) { renderTopbar("dashboard"); load(); }
+
+    async function load() {
+      const stats = await api("/admin/analytics");
+      const rows = [
+        ["Total students", stats.total_students],
+        ["Total quizzes", stats.total_quizzes],
+        ["Published", stats.published_quizzes],
+        ["Drafts", stats.draft_quizzes],
+        ["Total questions", stats.total_questions],
+        ["Total attempts", stats.total_attempts],
+        ["Average score", `${stats.average_score}%`],
+        ["Passed / Failed", `${stats.passed_attempts} / ${stats.failed_attempts}`],
+      ];
+      document.getElementById("statsGrid").innerHTML = rows
+        .map(([label, value]) => `<div class="card"><div class="eyebrow">${label}</div><div class="score-big" style="font-size:26px;">${value}</div></div>`)
+        .join("");
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Students — Quiz Platform</title>
+<link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+  <div class="topbar" id="topbar"></div>
+
+  <div class="container">
+    <div class="eyebrow">Registered students</div>
+    <h1>Students</h1>
+
+    <div class="card">
+      <input id="searchInput" placeholder="Search by name..." />
+    </div>
+
+    <div class="card">
+      <table>
+        <thead><tr><th>Name</th><th>Email</th><th>Status</th><th>Joined</th><th></th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="../assets/js/api.js"></script>
+  <script src="../assets/js/layout.js"></script>
+  <script>
+    const user = requireAuth("ADMIN");
+    if (user) { renderTopbar("users"); load(); }
+
+    document.getElementById("searchInput").addEventListener("input", (e) => load(e.target.value));
+
+    async function load(search = "") {
+      const params = search ? `?search=${encodeURIComponent(search)}` : "";
+      const students = await api(`/users${params}`);
+      document.getElementById("tbody").innerHTML = students
+        .map(
+          (s) => `
+        <tr>
+          <td>${s.name}</td>
+          <td>${s.email}</td>
+          <td><span class="stamp ${s.status === "ACTIVE" ? "passed" : "failed"}">${s.status}</span></td>
+          <td>${new Date(s.created_at).toLocaleDateString()}</td>
+          <td>
+            <button class="btn secondary" onclick="toggleStatus('${s.id}','${s.status}')">
+              ${s.status === "ACTIVE" ? "Deactivate" : "Activate"}
+            </button>
+          </td>
+        </tr>`
+        )
+        .join("");
+    }
+
+    async function toggleStatus(id, currentStatus) {
+      const next = currentStatus === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+      await api(`/users/${id}/status`, { method: "PATCH", body: { status: next } });
+      load(document.getElementById("searchInput").value);
+    }
+  </script>
+</body>
+</html>

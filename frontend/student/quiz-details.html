@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Quiz details — Quiz Platform</title>
+<link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+  <div class="topbar" id="topbar"></div>
+
+  <div class="container" style="max-width:600px;">
+    <div class="eyebrow" id="difficultyTag">Quiz</div>
+    <h1 id="title">Loading...</h1>
+    <p class="muted" id="description"></p>
+
+    <div class="card">
+      <table>
+        <tr><td>Questions</td><td id="questionCount">-</td></tr>
+        <tr><td>Duration</td><td id="duration">-</td></tr>
+        <tr><td>Passing score</td><td id="passingScore">-</td></tr>
+        <tr><td>Maximum attempts</td><td id="maxAttempts">-</td></tr>
+        <tr><td>Negative marking</td><td id="negativeMarking">-</td></tr>
+      </table>
+    </div>
+
+    <div id="formError" class="error hidden"></div>
+    <button class="btn" id="startBtn">Start quiz</button>
+  </div>
+
+  <script src="../assets/js/api.js"></script>
+  <script src="../assets/js/layout.js"></script>
+  <script>
+    const user = requireAuth("STUDENT");
+    const quizId = new URLSearchParams(window.location.search).get("id");
+    if (user && quizId) {
+      renderTopbar("quizzes");
+      load();
+    }
+
+    async function load() {
+      const quiz = await api(`/quizzes/${quizId}`);
+      document.getElementById("title").textContent = quiz.title;
+      document.getElementById("description").textContent = quiz.description || "";
+      document.getElementById("difficultyTag").textContent = quiz.difficulty || "General";
+      document.getElementById("duration").textContent = `${quiz.duration_minutes} minutes`;
+      document.getElementById("passingScore").textContent = `${quiz.passing_score}%`;
+      document.getElementById("maxAttempts").textContent = quiz.max_attempts;
+      document.getElementById("negativeMarking").textContent =
+        quiz.negative_marks > 0 ? `-${quiz.negative_marks} per wrong answer` : "None";
+
+      // Question count isn't exposed on the public quiz object; the attempt
+      // start call returns the full list, so we just label it "See on start".
+      document.getElementById("questionCount").textContent = "Revealed when you start";
+    }
+
+    document.getElementById("startBtn").addEventListener("click", async () => {
+      const errorEl = document.getElementById("formError");
+      errorEl.classList.add("hidden");
+      try {
+        window.location.href = `./quiz-attempt.html?id=${quizId}`;
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.remove("hidden");
+      }
+    });
+  </script>
+</body>
+</html>
